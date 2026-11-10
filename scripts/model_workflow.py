@@ -79,12 +79,6 @@ def load_queue(path):
 def verify_tools():
     if not all(shutil.which(tool) for tool in ("codex", "agy")):
         raise ValueError("Install and sign into both codex and agy before running")
-    settings = Path.home() / ".gemini/antigravity-cli/settings.json"
-    if not settings.is_file():
-        raise ValueError("Configure the Antigravity reviewer deny rules in the Mac guide")
-    denied = json.loads(settings.read_text()).get("permissions", {}).get("deny", [])
-    if not DENIED.issubset(denied):
-        raise ValueError("Antigravity reviewer deny rules are incomplete; see the Mac guide")
 
 
 def changed_paths(worktree, base):
@@ -144,9 +138,11 @@ def run_ticket(ticket, folder, model):
               "Start with PASS or CHANGES on a line by itself, then give specific findings. "
               "Use CHANGES if there is insufficient evidence.\n"
               f"Candidate {sha}\n{spec}\n{diff.decode('utf-8')}")
+    reviewer_settings = json.dumps({"permissions": {"deny": sorted(DENIED)}})
     result = json.loads(run(
         ("agy", "-p", prompt, "--model", model, "--output-format", "json",
-         "--sandbox", "--print-timeout", "10m"),
+         "--sandbox", "--settings", reviewer_settings, "--disable-slash-commands",
+         "--print-timeout", "10m"),
         reviewer, folder / "gemini.log", timeout=660))
     response = result.get("response", "").strip().splitlines()
     if result.get("status") != "SUCCESS" or not response or response[0] != "PASS":

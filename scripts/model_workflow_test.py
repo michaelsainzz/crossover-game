@@ -42,7 +42,9 @@ class WorkflowTest(unittest.TestCase):
     def execute(self, writer, review="PASS"):
         self.cli("codex", writer)
         self.cli("agy", "import json, sys\n"
-                 "assert '--sandbox' in sys.argv\n"
+                 "assert '--sandbox' in sys.argv and '--disable-slash-commands' in sys.argv\n"
+                 "settings = json.loads(sys.argv[sys.argv.index('--settings') + 1])\n"
+                 f"assert set(settings['permissions']['deny']) == {workflow.DENIED!r}\n"
                  "assert 'diff --git' in sys.argv[2]\n"
                  f"print(json.dumps(dict(status='SUCCESS', response={review!r})))")
         checks = ((sys.executable, "-c", "assert open('README.md').read() == 'Updated'"),)

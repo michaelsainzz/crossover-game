@@ -17,26 +17,9 @@ agy models
 
 Codex supports [non-interactive execution](https://learn.chatgpt.com/docs/non-interactive-mode), the [Codex SDK](https://learn.chatgpt.com/docs/codex-sdk), and [App Server](https://learn.chatgpt.com/docs/app-server) for custom clients. Google supports [Antigravity CLI headless mode](https://antigravity.google/docs/cli/headless/) and a [Python Antigravity SDK](https://antigravity.google/docs/sdk/overview/). The CLI pair uses normal sign-ins and requires no SDK dependency or new API key. Google directs [consumer Gemini CLI users](https://developers.google.com/gemini-code-assist/docs/deprecations/code-assist-individuals) to Antigravity. Provider usage and quotas still apply.
 
-## 2. Make Antigravity CLI review-only
+## 2. Queue one documentation ticket
 
-In `~/.gemini/antigravity-cli/settings.json`, add these entries to `permissions.deny`, preserving the existing settings. This applies to the CLI account on this Mac, including its other terminal sessions. Keep the desktop app for interactive Gemini writing, and use a dedicated account if you need separate CLI policies. The coordinator checks for these rules before starting a batch. [Google CLI permissions](https://antigravity.google/docs/permissions/?tab=cli)
-
-```json
-{
-  "permissions": {
-    "deny": [
-      "read_file(*)",
-      "write_file(*)",
-      "command(*)",
-      "read_url(*)",
-      "execute_url(*)",
-      "mcp(*)"
-    ]
-  }
-}
-```
-
-## 3. Queue one documentation ticket
+The coordinator applies the reviewer's deny rules for its own Antigravity CLI session using `--settings`. Your usual Antigravity sessions keep their existing settings. Use a CLI version that lists `--settings` and `--disable-slash-commands` under `agy --help`. [Google CLI permissions](https://antigravity.google/docs/permissions/?tab=cli)
 
 In Terminal, open a Crossover Git checkout containing this workflow. Use a trusted commit that includes the code and docs you intend to build on. Running the script with a local queue is approval to send the ticket and relevant repository material to both providers. Keep secrets, private transcripts and restricted assets out of the ticket and checkout. Keep ticket text and diffs public-safe. The short review prompt is passed as a local command-line argument.
 
@@ -53,8 +36,8 @@ Save the following as `crossover-queue.json` in your home folder. Replace `PASTE
     "id": "controls-doc-pilot",
     "base": "PASTE_FULL_SHA_HERE",
     "paths": ["README.md"],
-    "task": "Clarify in the controls section that the green release window applies to shots.",
-    "acceptance": "Add one concise clarification. Preserve every existing keyboard and controller binding."
+    "task": "After the README controls paragraph, add a short sentence explaining how to start a rematch once the result is shown.",
+    "acceptance": "The new sentence names R on keyboard and Menu on controller, matching the controls table. Preserve every existing binding."
   }
 ]
 ```
@@ -68,7 +51,7 @@ Replace `YOUR_GEMINI_SLUG` with a Gemini entry from `agy models`. Leave Terminal
 
 On failure the runner stops the queue and prints where to find the evidence. Open the private run folder and inspect the ticket's `*.log` and `*.err` files. Fix the ticket or environment and re-run once. If the second attempt fails, bring the evidence to the coordinator. A new run gets its own folder, so earlier candidates remain available.
 
-## 4. Review and publish
+## 3. Review and publish
 
 Open the ticket's `candidate.diff`, `candidate.txt`, `gemini.log` and portable check logs. Review the exact SHA before publishing. To import an accepted candidate, run the following from your main project checkout, substituting the absolute run folder printed by the script and your ticket ID. The commands create a new local branch without switching your current checkout.
 
