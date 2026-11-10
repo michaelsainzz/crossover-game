@@ -117,7 +117,7 @@ def verify(ue_root, timeout):
     run_step(["xcodebuild", "-version"], artifacts / "xcode.log", 30)
     run_step(["xcrun", "--sdk", "macosx", "--show-sdk-version"], artifacts / "sdk.log", 30)
 
-    run_step([build, "CrossoverEditor", "Mac", "Development", f"-Project={project}"],
+    run_step([build, "CrossoverEditor", "Mac", "Development", f"-Project={project}", "-NoUBA"],
              artifacts / "build.log", timeout)
 
     report = artifacts / "report"

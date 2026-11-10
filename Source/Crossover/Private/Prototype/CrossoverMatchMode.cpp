@@ -197,14 +197,14 @@ void ACrossoverMatchMode::PassOrSwitch(ACrossoverPracticePlayer& Player)
         const double OtherAim = FVector::DotProduct(Direction, (Roster[Other]->GetActorLocation() - Origin).GetSafeNormal2D());
         StartPass(OtherAim > NextAim ? Other : Next);
     }
-    else if (Rules.GetState().Possession == Team::Away)
+    else if (Rules.GetState().Possession == Team::Away || bLooseBall)
     {
         const FVector Target = GetBallWorldPosition();
         const int32 Next = (HumanIndex + 1) % TeamSize;
         const int32 Other = (HumanIndex + 2) % TeamSize;
         TransferControl(FVector::DistSquared2D(Target, Roster[Other]->GetActorLocation())
             < FVector::DistSquared2D(Target, Roster[Next]->GetActorLocation()) ? Other : Next);
-        Feedback = TEXT("Defender switched");
+        Feedback = bLooseBall ? TEXT("Player switched") : TEXT("Defender switched");
     }
 }
 

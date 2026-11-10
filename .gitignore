@@ -4,6 +4,7 @@ Binaries/
 DerivedDataCache/
 Intermediate/
 Saved/
+Build/
 Builds/
 .vs/
 *.sln
