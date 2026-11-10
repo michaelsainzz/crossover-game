@@ -29,6 +29,8 @@ python3 scripts/ue_mac.py --ue-root "/Users/Shared/Epic Games/UE_5.8"
 
 The command also accepts the path through `UE_ROOT`. Run one instance at a time and close Unreal Editor before the build. Build, test and packaging steps each time out after 30 minutes by default. Use `--step-timeout` to increase that limit for a cold shader cache. The headless standalone launch is capped at 120 seconds.
 
+Use a clean local checkout outside any file-provider-managed folder for packaging. On the reference Mac, the Documents file provider added Finder metadata to the generated app bundle, and Xcode refused to sign it. A checkout outside Documents passed the signing step. [Apple code-signing diagnosis](https://developer.apple.com/library/archive/qa/qa1940/_index.html)
+
 Each run writes to a fresh `Saved/MacVerification/run-*` directory. Keep the engine, Xcode and SDK metadata, command logs, editor test report and standalone game log with the run record. The archive lives under that run's `archive/` directory. Keep raw logs private and attach redacted excerpts to public PRs. [Unreal automation report format](https://dev.epicgames.com/documentation/unreal-engine/review-test-results-in-unreal-engine) · [BuildCookRun guide](https://dev.epicgames.com/documentation/unreal-engine/build-operations-cooking-packaging-deploying-and-running-projects-in-unreal-engine)
 
 Without Unreal, run `python3 scripts/ue_mac_test.py` to exercise the verifier's missing-tool, timeout, and report checks. To inspect an existing result, pass `--check-report /path/to/index.json`. That report-only command does not build or launch the game.

@@ -136,13 +136,13 @@ def verify(ue_root, timeout):
         "-pak", "-package", "-archive", f"-archivedirectory={archive}",
     ], artifacts / "package.log", timeout)
 
-    game_log = artifacts / "game.log"
+    launch_log = artifacts / "launch.log"
     run_step([
         packaged_executable(archive), "-CrossoverSmoke", "-Unattended", "-NullRHI",
-        "-NoSound", f"-AbsLog={game_log}",
-    ], artifacts / "launch.log", min(timeout, 120))
-    if not READY_MARKER.search(game_log.read_text(encoding="utf-8-sig", errors="replace")):
-        raise ValueError(f"Packaged game did not report sandbox readiness. See {game_log}.")
+        "-NoSound",
+    ], launch_log, min(timeout, 120))
+    if not READY_MARKER.search(launch_log.read_text(encoding="utf-8-sig", errors="replace")):
+        raise ValueError(f"Packaged game did not report sandbox readiness. See {launch_log}.")
     print(f"Mac build, automation, package, and headless launch passed. Evidence: {artifacts}")
 
 

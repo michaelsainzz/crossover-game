@@ -8,9 +8,9 @@ Product direction accepted. Build an original, offline 3v3 half-court vertical s
 | --- | --- | --- |
 | Repository and agent workflow | Implemented | One integration branch, a written handoff and ownership protocol, and a hosted portable check workflow. |
 | Native rules | Passed outside Unreal | Seven C++ scenarios, including possession, defensive clears, clock expiry, overtime, and five consecutive resets. |
-| Mac verifier | Passed outside Unreal | Five Python checks plus a simulated build, report, package and launch path. |
-| M0 · Unreal build and package | Blocked | The reference Mac has Xcode 26.6 and SDK 26.5. No Unreal installation was found, and the Mac lane stopped before compilation. |
-| M1 · Shot feel | In progress | Native practice court, camera, character, input, shot meter, and scripted scoring are in source. First compile and graphical playtest are pending M0. |
+| Mac verifier | Passed | Five Python checks passed. Real Unreal packaging exposed a launch log assumption. The verifier now reads the readiness marker from the captured process output. |
+| M0 · Unreal build and package | Passed on reference Mac | A clean checkout at `ca1aecf` built with UE 5.8.4, Xcode 26.6 and SDK 26.5. `Crossover.Smoke` passed with zero warnings and errors. UAT produced an arm64 Mac app. The packaged app logged `CROSSOVER_SMOKE_READY` and exited 0, and the local signed copy opened with Metal graphics. |
+| M1 · Shot feel | Awaiting owner playtest | The packaged practice court rendered and the player moved, scored, and received missed-release feedback. This is a grayscale blockout. Controller input and product approval of movement, camera, and shot timing remain open. |
 | M2 · Full 3v3 | In progress | Portable rule engine is available. Integration, teammates, opponents, passing and the match HUD remain open. |
 
-The coordinator kept ownership of project config and integration. Parallel workers owned the court, the match rules, and the Mac verification lane in disjoint paths. A separate agent inspected the integrated Unreal source. The engine-backed build and playable approval gates remain open. The [toolchain plan](TOOLCHAIN.md) describes the next run.
+The coordinator kept ownership of project config and integration. Parallel workers owned the court, the match rules, and the Mac verification lane in disjoint paths. A separate agent inspected the integrated Unreal source. An independent reviewer confirmed the clean checkout, editor build, editor report, Mac package, and packaged readiness evidence. Raw evidence is kept locally. The [toolchain plan](TOOLCHAIN.md) describes how to repeat the run.
