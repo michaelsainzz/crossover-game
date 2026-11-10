@@ -43,8 +43,7 @@ public:
     static constexpr float MakeWindowStart = 0.52f;
     static constexpr float MakeWindowEnd = 0.72f;
 
-private:
-    void VerifySmokeStart();
+protected:
     ACrossoverPracticePlayer* GetPracticePlayer() const;
     FVector GetHeldBallPosition(const ACrossoverPracticePlayer& Player) const;
 
@@ -59,6 +58,9 @@ private:
 
     UPROPERTY()
     TObjectPtr<UStaticMesh> BallMesh;
+
+private:
+    void VerifySmokeStart();
 
     int32 PracticeScore = 0;
     int32 PendingPoints = 0;

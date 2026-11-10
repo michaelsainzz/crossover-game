@@ -4,7 +4,8 @@
 
 #include "Engine/StaticMesh.h"
 #include "GameMapsSettings.h"
-#include "Prototype/CrossoverPracticeMode.h"
+#include "Prototype/CrossoverMatchHUD.h"
+#include "Prototype/CrossoverMatchMode.h"
 #include "Prototype/CrossoverPracticePlayer.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCrossoverSmoke, "Crossover.Smoke",
@@ -12,11 +13,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCrossoverSmoke, "Crossover.Smoke",
 
 bool FCrossoverSmoke::RunTest(const FString& Parameters)
 {
-    const ACrossoverPracticeMode* Mode = GetDefault<ACrossoverPracticeMode>();
-    TestTrue(TEXT("Project selects the practice game mode"),
-        UGameMapsSettings::GetGlobalDefaultGameMode() == ACrossoverPracticeMode::StaticClass()->GetPathName());
-    TestTrue(TEXT("Practice mode selects the player pawn"), Mode->DefaultPawnClass == ACrossoverPracticePlayer::StaticClass());
-    TestTrue(TEXT("Practice mode selects the HUD"), Mode->HUDClass == ACrossoverPracticeHUD::StaticClass());
+    const ACrossoverMatchMode* Mode = GetDefault<ACrossoverMatchMode>();
+    TestTrue(TEXT("Project selects the match game mode"),
+        UGameMapsSettings::GetGlobalDefaultGameMode() == ACrossoverMatchMode::StaticClass()->GetPathName());
+    TestTrue(TEXT("Match mode selects the player pawn"), Mode->DefaultPawnClass == ACrossoverPracticePlayer::StaticClass());
+    TestTrue(TEXT("Match mode selects the HUD"), Mode->HUDClass == ACrossoverMatchHUD::StaticClass());
     TestNotNull(TEXT("Court primitive loads"),
         LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")));
     TestNotNull(TEXT("Player primitive loads"),

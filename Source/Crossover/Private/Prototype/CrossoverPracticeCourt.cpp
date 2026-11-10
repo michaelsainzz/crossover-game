@@ -12,6 +12,8 @@ namespace
 {
 constexpr double HalfLength = 1100.0;
 constexpr double HalfWidth = 750.0;
+constexpr double EdgeX = HalfLength - 12.0;
+constexpr double EdgeY = HalfWidth - 12.0;
 constexpr double ArcRadius = 600.0;
 constexpr double CubeSize = 100.0;
 const FVector RimCenter(900.0, 0.0, 305.0);
@@ -99,8 +101,6 @@ void ACrossoverPracticeCourt::OnConstruction(const FTransform& Transform)
             FVector(EndX, EndY, LineHeight), 6.0, 2.0);
     };
 
-    constexpr double EdgeX = HalfLength - 12.0;
-    constexpr double EdgeY = HalfWidth - 12.0;
     PaintLine(-EdgeX, -EdgeY, EdgeX, -EdgeY);
     PaintLine(-EdgeX, EdgeY, EdgeX, EdgeY);
     PaintLine(-EdgeX, -EdgeY, -EdgeX, EdgeY);
@@ -131,4 +131,10 @@ bool ACrossoverPracticeCourt::IsOutsideArc(const FVector& WorldPosition) const
     const FVector LocalPosition = GetActorTransform().InverseTransformPosition(WorldPosition);
     const double ForwardDistance = FMath::Min(LocalPosition.X - RimCenter.X, 0.0);
     return FMath::Square(ForwardDistance) + FMath::Square(LocalPosition.Y) > FMath::Square(ArcRadius);
+}
+
+bool ACrossoverPracticeCourt::IsOutOfBounds(const FVector& WorldPosition) const
+{
+    const FVector LocalPosition = GetActorTransform().InverseTransformPosition(WorldPosition);
+    return FMath::Abs(LocalPosition.X) > EdgeX || FMath::Abs(LocalPosition.Y) > EdgeY;
 }
