@@ -33,11 +33,13 @@ public:
     float GetChargeFraction() const { return FMath::Min(ChargeSeconds, 1.0f); }
     const FString& GetFeedback() const { return Feedback; }
     FVector GetBallWorldPosition() const;
+    bool IsShotContested(int32 Shooter, const FVector& ShotOrigin, const FVector& TargetRim) const;
 
 private:
     friend bool Crossover::MatchScenario::Run(ACrossoverMatchMode& Mode);
 
     void RunMatchSmoke();
+    void FinishPerfCapture();
     void ResetMatch();
     void SetUpCheckIn();
     void TickMatch(float DeltaSeconds, bool bDriveBots);
@@ -75,4 +77,8 @@ private:
     FVector FlightEnd = FVector::ZeroVector;
     FVector LoosePosition = FVector::ZeroVector;
     FString Feedback;
+    bool bPerfMode = false;
+    int32 PerfWarmupFrames = 120;
+    int32 PerfSampleTarget = 720;
+    TArray<float> PerfSamples;
 };

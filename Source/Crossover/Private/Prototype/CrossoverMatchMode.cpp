@@ -5,9 +5,12 @@
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "HAL/FileManager.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
 #include "Misc/Parse.h"
+#include "Misc/Paths.h"
 #include "Prototype/CrossoverMatchHUD.h"
 #include "Prototype/CrossoverPracticeCourt.h"
 #include "Prototype/CrossoverPracticePlayer.h"
@@ -66,6 +69,16 @@ void ACrossoverMatchMode::StartPlay()
     {
         GetWorldTimerManager().SetTimerForNextTick(this, &ACrossoverMatchMode::RunMatchSmoke);
     }
+    else if (FParse::Param(FCommandLine::Get(), TEXT("CrossoverMatchPerf")))
+    {
+        bPerfMode = true;
+        PerfWarmupFrames = 120;
+        PerfSampleTarget = 720;
+        FParse::Value(FCommandLine::Get(), TEXT("PerfWarmup="), PerfWarmupFrames);
+        FParse::Value(FCommandLine::Get(), TEXT("PerfSamples="), PerfSampleTarget);
+        UE_LOG(LogTemp, Display, TEXT("CrossoverMatchPerf enabled: warmup=%d target_samples=%d"),
+            PerfWarmupFrames, PerfSampleTarget);
+    }
 }
 
 void ACrossoverMatchMode::RunMatchSmoke()
@@ -77,6 +90,68 @@ void ACrossoverMatchMode::RunMatchSmoke()
         return;
     }
     FPlatformMisc::RequestExitWithStatus(false, 1, TEXT("Crossover match smoke failed"));
+}
+
+void ACrossoverMatchMode::FinishPerfCapture()
+{
+    bPerfMode = false;
+    if (PerfSamples.Num() == 0)
+    {
+        FPlatformMisc::RequestExitWithStatus(false, 1, TEXT("No perf samples collected"));
+        return;
+    }
+
+    TArray<float> Sorted = PerfSamples;
+    Sorted.Sort();
+
+    float Sum = 0.0f;
+    const float MinMs = Sorted[0];
+    const float MaxMs = Sorted[Sorted.Num() - 1];
+    for (float Sample : Sorted)
+    {
+        Sum += Sample;
+    }
+    const float AvgMs = Sum / Sorted.Num();
+
+    auto Percentile = [&Sorted](float Pct) -> float
+    {
+        const int32 Index = FMath::Clamp(FMath::RoundToInt32((Pct / 100.0f) * (Sorted.Num() - 1)), 0, Sorted.Num() - 1);
+        return Sorted[Index];
+    };
+
+    const float MedianMs = Percentile(50.0f);
+    const float P95Ms = Percentile(95.0f);
+    const float P99Ms = Percentile(99.0f);
+
+    const bool bPassed = (MedianMs <= 16.7f) && (P95Ms <= 22.0f);
+
+    UE_LOG(LogTemp, Display,
+        TEXT("CROSSOVER_MATCH_PERF_SUMMARY: samples=%d min=%.2fms max=%.2fms avg=%.2fms median=%.2fms p95=%.2fms p99=%.2fms passed=%s"),
+        Sorted.Num(), MinMs, MaxMs, AvgMs, MedianMs, P95Ms, P99Ms, bPassed ? TEXT("true") : TEXT("false"));
+
+    const FString ProfilingDir = FPaths::ProjectSavedDir() / TEXT("Profiling");
+    IFileManager::Get().MakeDirectory(*ProfilingDir, true);
+    const FString ReportPath = ProfilingDir / TEXT("perf-report.json");
+
+    const FString JsonContent = FString::Printf(
+        TEXT("{\n")
+        TEXT("  \"samples\": %d,\n")
+        TEXT("  \"min_ms\": %.3f,\n")
+        TEXT("  \"max_ms\": %.3f,\n")
+        TEXT("  \"avg_ms\": %.3f,\n")
+        TEXT("  \"median_ms\": %.3f,\n")
+        TEXT("  \"p95_ms\": %.3f,\n")
+        TEXT("  \"p99_ms\": %.3f,\n")
+        TEXT("  \"target_median_ms\": 16.7,\n")
+        TEXT("  \"target_p95_ms\": 22.0,\n")
+        TEXT("  \"passed\": %s\n")
+        TEXT("}\n"),
+        Sorted.Num(), MinMs, MaxMs, AvgMs, MedianMs, P95Ms, P99Ms, bPassed ? TEXT("true") : TEXT("false"));
+
+    FFileHelper::SaveStringToFile(JsonContent, *ReportPath);
+    UE_LOG(LogTemp, Display, TEXT("CROSSOVER_MATCH_PERF_READY: Report saved to %s"), *ReportPath);
+
+    FPlatformMisc::RequestExitWithStatus(false, bPassed ? 0 : 1, TEXT("Crossover perf capture finished"));
 }
 
 void ACrossoverMatchMode::ResetMatch()
@@ -253,6 +328,43 @@ void ACrossoverMatchMode::Rematch(ACrossoverPracticePlayer& Player)
     }
 }
 
+bool ACrossoverMatchMode::IsShotContested(int32 Shooter, const FVector& ShotOrigin, const FVector& TargetRim) const
+{
+    if (TeamOf(Shooter) == Team::Away && ContestRemaining > 0.0f)
+    {
+        return true;
+    }
+
+    const Team ShooterTeam = TeamOf(Shooter);
+    const FVector ToRim = (TargetRim - ShotOrigin).GetSafeNormal2D();
+    constexpr double MaxContestDistSq = 220.0 * 220.0;
+    constexpr double CloseContestDistSq = 110.0 * 110.0;
+
+    for (int32 Index = 0; Index < Roster.Num(); ++Index)
+    {
+        if (TeamOf(Index) == ShooterTeam || !Roster.IsValidIndex(Index) || !Roster[Index].Get())
+        {
+            continue;
+        }
+
+        const FVector DefPos = Roster[Index]->GetActorLocation();
+        const double DistSq = FVector::DistSquared2D(ShotOrigin, DefPos);
+        if (DistSq <= MaxContestDistSq)
+        {
+            if (DistSq <= CloseContestDistSq)
+            {
+                return true;
+            }
+            const FVector ToDef = (DefPos - ShotOrigin).GetSafeNormal2D();
+            if (FVector::DotProduct(ToRim, ToDef) > 0.25)
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void ACrossoverMatchMode::TakeShot(int32 Shooter, float Charge)
 {
     const FVector Position = Roster[Shooter]->GetActorLocation();
@@ -267,7 +379,7 @@ void ACrossoverMatchMode::TakeShot(int32 Shooter, float Charge)
     FlightEnd = Court->GetRimLocation();
     const double Distance = FVector::Dist2D(Position, FlightEnd);
     const bool bDunk = Distance <= DunkRange;
-    const bool bContested = TeamOf(Shooter) == Team::Away && ContestRemaining > 0.0f;
+    const bool bContested = IsShotContested(Shooter, Position, FlightEnd);
     const float WindowInset = bContested ? 0.07f : 0.0f;
     bShotMade = (bDunk && !bContested) || (Charge >= MakeWindowStart + WindowInset && Charge <= MakeWindowEnd - WindowInset);
     if (!bShotMade)
@@ -279,7 +391,9 @@ void ACrossoverMatchMode::TakeShot(int32 Shooter, float Charge)
     FlightSeconds = 0.0f;
     FlightDuration = bDunk ? 0.32f : FMath::Clamp(static_cast<float>(Distance / 1250.0), 0.45f, 1.3f);
     FlightArc = bDunk ? 110.0f : 270.0f;
-    Feedback = bShotMade ? (bDunk ? TEXT("Dunk!") : TEXT("Good release!")) : TEXT("Missed release");
+    Feedback = bShotMade
+        ? (bDunk ? TEXT("Dunk!") : (bContested ? TEXT("Tough shot made!") : TEXT("Good release!")))
+        : (bContested ? TEXT("Contested miss") : TEXT("Missed release"));
 }
 
 void ACrossoverMatchMode::FinishFlight()
@@ -346,6 +460,22 @@ void ACrossoverMatchMode::Tick(float DeltaSeconds)
 {
     AGameModeBase::Tick(DeltaSeconds);
     TickMatch(DeltaSeconds, true);
+
+    if (bPerfMode && Rules.GetState().Phase != MatchPhase::Finished)
+    {
+        if (PerfWarmupFrames > 0)
+        {
+            --PerfWarmupFrames;
+        }
+        else
+        {
+            PerfSamples.Add(DeltaSeconds * 1000.0f);
+            if (PerfSamples.Num() >= PerfSampleTarget)
+            {
+                FinishPerfCapture();
+            }
+        }
+    }
 }
 
 void ACrossoverMatchMode::TickMatch(float DeltaSeconds, bool bDriveBots)
@@ -384,6 +514,11 @@ void ACrossoverMatchMode::TickMatch(float DeltaSeconds, bool bDriveBots)
     }
     if (Rules.GetState().Phase == MatchPhase::Finished)
     {
+        if (bPerfMode)
+        {
+            ResetMatch();
+            return;
+        }
         bCharging = false;
         return;
     }
@@ -437,7 +572,7 @@ void ACrossoverMatchMode::DriveBots(float DeltaSeconds)
     const FVector Rim = Court->GetRimLocation();
     for (int32 Index = 0; Index < PlayerCount; ++Index)
     {
-        if (Index == HumanIndex)
+        if (Index == HumanIndex && !bPerfMode)
         {
             continue;
         }
@@ -462,6 +597,13 @@ void ACrossoverMatchMode::DriveBots(float DeltaSeconds)
             {
                 bBotPassed = true;
                 StartPass(TeamSize + (Index - TeamSize + 1) % TeamSize);
+                return;
+            }
+            if (Possession == Team::Home && bPerfMode && !Rules.GetState().RequiresClear && !bBotPassed && BotHoldSeconds >= 1.1f
+                && Rules.GetState().ShotClockRemainingMilliseconds >= 5500)
+            {
+                bBotPassed = true;
+                StartPass((Index + 1) % TeamSize);
                 return;
             }
             if (!Rules.GetState().RequiresClear && BotHoldSeconds >= 2.35f
@@ -493,6 +635,19 @@ void ACrossoverMatchMode::DriveBots(float DeltaSeconds)
                 BotHoldSeconds = 0.0f;
                 StealCooldown = 1.5f;
                 Feedback = TEXT("Away steal");
+                break;
+            }
+            else if (TeamOf(Index) == Team::Home && bPerfMode && CanPlayBall() && Opponent == CarrierIndex
+                && StealCooldown <= 0.0f
+                && FVector::DistSquared2D(OpponentLocation, Bot.GetActorLocation()) < FMath::Square(105.0)
+                && Rules.Recover(Team::Home))
+            {
+                CarrierIndex = Index;
+                bBotPassed = false;
+                BotHoldSeconds = 0.0f;
+                StealCooldown = 1.5f;
+                Feedback = TEXT("Home steal! Clear the arc");
+                TransferControl(Index);
                 break;
             }
         }
