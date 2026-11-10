@@ -18,6 +18,7 @@ public:
 
     FVector GetRimLocation() const;
     bool IsOutsideArc(const FVector& WorldPosition) const;
+    bool IsOutOfBounds(const FVector& WorldPosition) const;
 
 private:
     UPROPERTY(VisibleAnywhere, Category = "Court")

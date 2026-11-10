@@ -16,7 +16,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST = "Crossover.Smoke"
-READY_MARKER = re.compile(r"(?m)(?:^|: )CROSSOVER_SMOKE_READY[ \t\r]*$")
+READY_MARKER = re.compile(r"(?m)(?:^|: )CROSSOVER_MATCH_SMOKE_READY[ \t\r]*$")
 
 
 def validate_report(path):
@@ -138,11 +138,11 @@ def verify(ue_root, timeout):
 
     launch_log = artifacts / "launch.log"
     run_step([
-        packaged_executable(archive), "-CrossoverSmoke", "-Unattended", "-NullRHI",
+        packaged_executable(archive), "-CrossoverMatchSmoke", "-Unattended", "-NullRHI",
         "-NoSound",
     ], launch_log, min(timeout, 120))
     if not READY_MARKER.search(launch_log.read_text(encoding="utf-8-sig", errors="replace")):
-        raise ValueError(f"Packaged game did not report sandbox readiness. See {launch_log}.")
+        raise ValueError(f"Packaged game did not report 3v3 scenario readiness. See {launch_log}.")
     print(f"Mac build, automation, package, and headless launch passed. Evidence: {artifacts}")
 
 

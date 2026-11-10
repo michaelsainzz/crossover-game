@@ -15,8 +15,8 @@ Use macOS as the development and first playtest target. A Windows build requires
 The agent owns setup diagnosis and implementation. The owner handles any Epic sign-in or system dialogs that require personal access.
 
 1. Record the Launcher's install size and available disk space. Install the selected Unreal patch and Git LFS. Before adding production content, confirm a clean clone can download a real Unreal package through LFS.
-2. Run the verification command below from a fresh checkout with Xcode selected. It builds the C++ editor, requires a clean `Crossover.Smoke` automation result, cooks and archives a Mac Development build, and checks that the standalone game starts the native sandbox and exits cleanly. The engine's Entry map hosts the procedural test court until a dedicated court asset is ready.
-3. Open the archived `Crossover.app` normally from Finder. Confirm the sandbox draws and accepts input. Record the graphical launch result separately from the headless smoke test.
+2. Run the verification command below from a fresh checkout with Xcode selected. It builds the C++ editor, requires a clean `Crossover.Smoke` automation result, cooks and archives a Mac Development build, and checks that the standalone game runs the deterministic 3v3 scenario and exits cleanly. The engine's Entry map hosts the procedural test court until a dedicated court asset is ready.
+3. Open the archived `Crossover.app` normally from Finder. Confirm the match draws and accepts input. Record the graphical launch result separately from the headless smoke test.
 4. Record the successful engine patch, Xcode build, SDK, tested commit, logs, app launch result, and disk footprint in the PR. If a step fails or a tool is missing, preserve the failure and keep M0 open.
 
 ### Run the Mac verification lane
@@ -31,7 +31,7 @@ The command also accepts the path through `UE_ROOT`. Run one instance at a time 
 
 Use a clean local checkout outside any file-provider-managed folder for packaging. On the reference Mac, the Documents file provider added Finder metadata to the generated app bundle, and Xcode refused to sign it. A checkout outside Documents passed the signing step. [Apple code-signing diagnosis](https://developer.apple.com/library/archive/qa/qa1940/_index.html)
 
-Each run writes to a fresh `Saved/MacVerification/run-*` directory. Keep the engine, Xcode and SDK metadata, command logs, editor test report and standalone game log with the run record. The archive lives under that run's `archive/` directory. Keep raw logs private and attach redacted excerpts to public PRs. [Unreal automation report format](https://dev.epicgames.com/documentation/unreal-engine/review-test-results-in-unreal-engine) · [BuildCookRun guide](https://dev.epicgames.com/documentation/unreal-engine/build-operations-cooking-packaging-deploying-and-running-projects-in-unreal-engine)
+Each run writes to a fresh `Saved/MacVerification/run-*` directory. Keep the engine, Xcode and SDK metadata, command logs, editor test report and captured standalone launch output with the run record. The archive lives under that run's `archive/` directory. Keep raw logs private and attach redacted excerpts to public PRs. [Unreal automation report format](https://dev.epicgames.com/documentation/unreal-engine/review-test-results-in-unreal-engine) · [BuildCookRun guide](https://dev.epicgames.com/documentation/unreal-engine/build-operations-cooking-packaging-deploying-and-running-projects-in-unreal-engine)
 
 Without Unreal, run `python3 scripts/ue_mac_test.py` to exercise the verifier's missing-tool, timeout, and report checks. To inspect an existing result, pass `--check-report /path/to/index.json`. That report-only command does not build or launch the game.
 
