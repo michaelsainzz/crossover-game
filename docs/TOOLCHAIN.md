@@ -2,11 +2,11 @@
 
 ## Reference Mac
 
-Observed Apple M4, 16 GB unified memory, macOS 26.5.1, Xcode 26.6, and about 44 GiB of available space. The selected Xcode includes a Metal tool path. No Unreal install was found in the standard locations checked, and Git LFS was unavailable.
+Observed Apple M4, 16 GB unified memory, macOS 26.5.1, Xcode 26.6, and macOS SDK 26.5. The Launcher installed UE 5.8.4. Xcode's optional Metal Toolchain reports Apple Metal 32023.883. The internal disk had about 11 GiB free after setup. Git LFS is still required before committing binary Unreal assets.
 
 Epic lists 16 GB as its memory minimum and 32 GB as its recommendation. Start with simple meshes, baked or inexpensive lighting, and scalable effects. Leave Nanite, Lumen, and expensive shadows off in the baseline. Close memory-heavy apps during the first shader compile. Check the Epic installer's actual disk estimate and allow additional room for caches, intermediates, and a packaged build. If internal space is tight, use available fast external storage after confirming it can hold the installation and work files.
 
-Evaluate the latest stable UE 5.8 patch offered in the Launcher as the first candidate. Epic's macOS page flags Xcode 26.4 as incompatible, and the installed 26.6 has yet to be proven on this Mac. Pin the exact engine patch, Xcode build, and macOS SDK only after M0 succeeds. If compilation fails, capture the log, compare the specific patch's requirements and known issues, and test a supported toolchain side by side. Try another supported Unreal patch if needed. Preserve the existing Xcode setup. [Epic macOS requirements](https://dev.epicgames.com/documentation/unreal-engine/macos-development-requirements-for-unreal-engine) · [UE 5.8 release notes](https://dev.epicgames.com/documentation/unreal-engine/unreal-engine-5-8-release-notes)
+UE 5.8.4 compiled the Mac editor target with Xcode 26.6 (17F113) and macOS SDK 26.5. Keep this toolchain for the first playtest. If compilation fails, capture the log, compare the specific patch's requirements and known issues, and test a supported toolchain side by side. Try another supported Unreal patch if needed. Preserve the existing Xcode setup. [Epic macOS requirements](https://dev.epicgames.com/documentation/unreal-engine/macos-development-requirements-for-unreal-engine) · [UE 5.8 release notes](https://dev.epicgames.com/documentation/unreal-engine/unreal-engine-5-8-release-notes)
 
 Use macOS as the development and first playtest target. A Windows build requires a separate supported Windows x64 build and test environment with its own packaging and GPU measurements. Keep platform-specific SDKs and plugins out of the initial project. Use native Unreal C++ and Enhanced Input, Blueprints for presentation, and simple state-driven bots. Prefer repo-owned assets and reproducible editor actions. Live editor tools can speed up authoring after the project opens, but a clean checkout and a recorded build command are the proof.
 
@@ -21,7 +21,7 @@ The agent owns setup diagnosis and implementation. The owner handles any Epic si
 
 ### Run the Mac verification lane
 
-Use Python 3.9 or newer. Set the path to the installed Unreal version, using the directory that contains `Engine/`.
+Use Python 3.9 or newer. Finish Xcode’s first-time setup and install its Metal Toolchain component for cooking and graphics. The runner verifies the actual compiler with `xcrun --sdk macosx metal --version`. Set the path to the installed Unreal version, using the directory that contains `Engine/`.
 
 ```sh
 python3 scripts/ue_mac.py --ue-root "/Users/Shared/Epic Games/UE_5.8"

@@ -128,10 +128,11 @@ def verify(ue_root, timeout):
     ], artifacts / "automation.log", timeout)
     validate_report(report / "index.json")
 
+    run_step(["xcrun", "--sdk", "macosx", "metal", "--version"], artifacts / "metal.log", 30)
     archive = artifacts / "archive"
     run_step([
         uat, "BuildCookRun", f"-project={project}", "-platform=Mac", "-clientconfig=Development",
-        f"-architecture={platform.machine()}", "-unattended", "-nop4", "-build", "-cook", "-stage",
+        f"-clientarchitecture={platform.machine()}", "-unattended", "-nop4", "-build", "-cook", "-stage",
         "-pak", "-package", "-archive", f"-archivedirectory={archive}",
     ], artifacts / "package.log", timeout)
 
