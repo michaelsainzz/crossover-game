@@ -44,3 +44,5 @@ Copy this list into each issue or PR. Keep private logs outside public Git and a
 - Elapsed and human review time, cost and tokens when available
 
 At each milestone count first-pass acceptances, rework cycles, and blocked tickets. Track build time, packaging reliability, and playtest feedback separately so agent speed and product quality can be evaluated independently.
+
+See [Run Codex and Gemini together on your Mac](MODEL_WORKFLOW.md) for the local documentation pilot.
