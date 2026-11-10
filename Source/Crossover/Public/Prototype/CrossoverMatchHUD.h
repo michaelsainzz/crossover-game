@@ -4,6 +4,8 @@
 #include "GameFramework/HUD.h"
 #include "CrossoverMatchHUD.generated.h"
 
+class UFont;
+
 UCLASS()
 class CROSSOVER_API ACrossoverMatchHUD : public AHUD
 {
@@ -11,4 +13,11 @@ class CROSSOVER_API ACrossoverMatchHUD : public AHUD
 
 public:
     virtual void DrawHUD() override;
+
+protected:
+    virtual void BeginPlay() override;
+
+private:
+    UPROPERTY(Transient)
+    TObjectPtr<UFont> DisplayFont;
 };

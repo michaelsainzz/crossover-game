@@ -5,7 +5,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
-#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
@@ -13,19 +12,16 @@
 #include "InputCoreTypes.h"
 #include "InputMappingContext.h"
 #include "InputModifiers.h"
-#include "Materials/MaterialInstanceDynamic.h"
-#include "Materials/MaterialInterface.h"
 #include "Prototype/CrossoverMatchMode.h"
 #include "Prototype/CrossoverPracticeMode.h"
-#include "UObject/ConstructorHelpers.h"
 
 namespace
 {
 constexpr float WalkSpeed = 540.0f;
 constexpr float SprintSpeed = 760.0f;
+constexpr float BoostSpeed = 890.0f;
 constexpr float BotSpeed = 440.0f;
 constexpr double BotSlowdownDistance = 120.0;
-const FName PlayerColorParameter(TEXT("Color"));
 }
 
 ACrossoverPracticePlayer::ACrossoverPracticePlayer()
@@ -33,34 +29,26 @@ ACrossoverPracticePlayer::ACrossoverPracticePlayer()
     PrimaryActorTick.bCanEverTick = true;
     AutoPossessAI = EAutoPossessAI::Disabled;
     GetCapsuleComponent()->InitCapsuleSize(38.0f, 88.0f);
-    GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-    GetCharacterMovement()->bOrientRotationToMovement = true;
-    GetCharacterMovement()->bRunPhysicsWithNoController = true;
+
+    UCharacterMovementComponent* Movement = GetCharacterMovement();
+    Movement->MaxWalkSpeed = WalkSpeed;
+    Movement->MaxAcceleration = 3900.0f;
+    Movement->BrakingDecelerationWalking = 2550.0f;
+    Movement->GroundFriction = 8.5f;
+    Movement->RotationRate = FRotator(0.0, 900.0, 0.0);
+    Movement->bOrientRotationToMovement = true;
+    Movement->bRunPhysicsWithNoController = true;
     bUseControllerRotationYaw = false;
 
-    Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BlockoutBody"));
-    Body->SetupAttachment(GetCapsuleComponent());
-    Body->SetRelativeScale3D(FVector(0.58, 0.58, 1.6));
-    Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    BuildAthlete();
+}
 
-    ControlMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ControlMarker"));
-    ControlMarker->SetupAttachment(GetCapsuleComponent());
-    ControlMarker->SetRelativeLocation(FVector(0.0, 0.0, 109.0));
-    ControlMarker->SetRelativeScale3D(FVector(0.36, 0.36, 0.1));
-    ControlMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    ControlMarker->SetCastShadow(false);
-    ControlMarker->SetVisibility(false);
-
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> Shape(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-    if (Shape.Succeeded())
-    {
-        Body->SetStaticMesh(Shape.Object);
-        ControlMarker->SetStaticMesh(Shape.Object);
-    }
-
-    static ConstructorHelpers::FObjectFinder<UMaterialInterface> Tint(
-        TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
-    MatchMaterial = Tint.Object;
+void ACrossoverPracticePlayer::BeginPlay()
+{
+    Super::BeginPlay();
+    bHumanPlayer = IsPlayerControlled();
+    UpdateAthleteMaterials();
+    UpdateAthlete(0.0f);
 }
 
 void ACrossoverPracticePlayer::PawnClientRestart()
@@ -107,27 +95,27 @@ void ACrossoverPracticePlayer::RemovePlayerMapping()
 
 void ACrossoverPracticePlayer::SetMatchAppearance(bool bHome, bool bHuman)
 {
-    GetCharacterMovement()->MaxWalkSpeed = bHuman ? WalkSpeed : BotSpeed;
-    if (MatchMaterial)
-    {
-        if (!TeamMaterial)
-        {
-            TeamMaterial = Body->CreateDynamicMaterialInstance(0, MatchMaterial);
-        }
-        if (TeamMaterial)
-        {
-            TeamMaterial->SetVectorParameterValue(PlayerColorParameter,
-                bHome ? FLinearColor(0.04f, 0.72f, 0.68f) : FLinearColor(1.0f, 0.28f, 0.05f));
-        }
-        if (bHuman && !Cast<UMaterialInstanceDynamic>(ControlMarker->GetMaterial(0)))
-        {
-            if (UMaterialInstanceDynamic* MarkerMaterial = ControlMarker->CreateDynamicMaterialInstance(0, MatchMaterial))
-            {
-                MarkerMaterial->SetVectorParameterValue(PlayerColorParameter, FLinearColor(1.0f, 0.8f, 0.04f));
-            }
-        }
-    }
+    bHomeTeam = bHome;
+    bHumanPlayer = bHuman;
+    UpdateSpeed();
+    UpdateAthleteMaterials();
     ControlMarker->SetVisibility(bHuman);
+}
+
+void ACrossoverPracticePlayer::SetArcadeBoost(bool bEnabled)
+{
+    if (bArcadeBoost != bEnabled)
+    {
+        bArcadeBoost = bEnabled;
+        UpdateSpeed();
+        UpdateAthleteMaterials();
+    }
+}
+
+void ACrossoverPracticePlayer::UpdateSpeed()
+{
+    GetCharacterMovement()->MaxWalkSpeed = bArcadeBoost ? BoostSpeed
+        : bSprinting ? SprintSpeed : bHumanPlayer ? WalkSpeed : BotSpeed;
 }
 
 void ACrossoverPracticePlayer::DriveBotTowards(const FVector& Target, float StopRadius)
@@ -166,6 +154,7 @@ void ACrossoverPracticePlayer::SetupPlayerInputComponent(UInputComponent* Player
         PassAction = NewObject<UInputAction>(this);
         ContestAction = NewObject<UInputAction>(this);
         RematchAction = NewObject<UInputAction>(this);
+        BoostAction = NewObject<UInputAction>(this);
 
         auto BindMoveKey = [this](FKey Key, bool bVertical, bool bNegative)
         {
@@ -198,6 +187,8 @@ void ACrossoverPracticePlayer::SetupPlayerInputComponent(UInputComponent* Player
         PracticeInput->MapKey(ContestAction, EKeys::Gamepad_FaceButton_Right);
         PracticeInput->MapKey(RematchAction, EKeys::R);
         PracticeInput->MapKey(RematchAction, EKeys::Gamepad_Special_Right);
+        PracticeInput->MapKey(BoostAction, EKeys::Q);
+        PracticeInput->MapKey(BoostAction, EKeys::Gamepad_RightShoulder);
     }
 
     Input->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACrossoverPracticePlayer::Move);
@@ -210,6 +201,7 @@ void ACrossoverPracticePlayer::SetupPlayerInputComponent(UInputComponent* Player
     Input->BindAction(PassAction, ETriggerEvent::Started, this, &ACrossoverPracticePlayer::PassOrSwitch);
     Input->BindAction(ContestAction, ETriggerEvent::Started, this, &ACrossoverPracticePlayer::Contest);
     Input->BindAction(RematchAction, ETriggerEvent::Started, this, &ACrossoverPracticePlayer::Rematch);
+    Input->BindAction(BoostAction, ETriggerEvent::Started, this, &ACrossoverPracticePlayer::ActivateBoost);
 }
 
 void ACrossoverPracticePlayer::Tick(float DeltaSeconds)
@@ -225,6 +217,7 @@ void ACrossoverPracticePlayer::Tick(float DeltaSeconds)
     {
         SetActorLocation(Clamped);
     }
+    UpdateAthlete(DeltaSeconds);
 }
 
 void ACrossoverPracticePlayer::Move(const FInputActionValue& Value)
@@ -240,12 +233,14 @@ void ACrossoverPracticePlayer::Move(const FInputActionValue& Value)
 
 void ACrossoverPracticePlayer::StartSprint()
 {
-    GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+    bSprinting = true;
+    UpdateSpeed();
 }
 
 void ACrossoverPracticePlayer::StopSprint()
 {
-    GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+    bSprinting = false;
+    UpdateSpeed();
 }
 
 void ACrossoverPracticePlayer::StartShot()
@@ -305,5 +300,13 @@ void ACrossoverPracticePlayer::Rematch()
     if (ACrossoverMatchMode* Match = GetWorld()->GetAuthGameMode<ACrossoverMatchMode>())
     {
         Match->Rematch(*this);
+    }
+}
+
+void ACrossoverPracticePlayer::ActivateBoost()
+{
+    if (ACrossoverMatchMode* Match = GetWorld()->GetAuthGameMode<ACrossoverMatchMode>())
+    {
+        Match->ActivateBoost(*this);
     }
 }
