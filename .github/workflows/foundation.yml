@@ -1,4 +1,4 @@
-name: Repository foundation
+name: Portable verification
 
 on:
   pull_request:
@@ -16,3 +16,5 @@ jobs:
         with:
           python-version: '3.11'
       - run: python3 scripts/check_foundation.py
+      - run: bash scripts/test_rules.sh
+      - run: python3 scripts/ue_mac_test.py

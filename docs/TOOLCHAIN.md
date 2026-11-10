@@ -14,9 +14,23 @@ Use macOS as the development and first playtest target. A Windows build requires
 
 The agent owns setup diagnosis and implementation. The owner handles any Epic sign-in or system dialogs that require personal access.
 
-1. Record launcher space requirements, free space, engine candidates, Xcode version and active SDK. Install the chosen engine and Git LFS. Verify LFS is active and a clean clone can hydrate Unreal assets from GitHub before adding production content.
-2. Create a minimal C++ project, an empty test court, and one known `Crossover.Smoke` test. Build the Mac editor target from a clean checkout. Run the test and confirm the report identifies it and marks it successful.
-3. Add documented, bounded-time build and automation commands. Verify an empty or failed test run fails the check. Package a Mac Development build with Unreal Automation Tool and launch the app outside the editor.
-4. Record the successful engine patch, Xcode build, SDK, commands, commit, logs, app launch result and disk footprint in the PR. If a step is blocked, preserve the exact failure and keep M0 open.
+1. Record the Launcher's install size and available disk space. Install the selected Unreal patch and Git LFS. Before adding production content, confirm a clean clone can download a real Unreal package through LFS.
+2. Run the verification command below from a fresh checkout with Xcode selected. It builds the C++ editor, requires a clean `Crossover.Smoke` automation result, cooks and archives a Mac Development build, and checks that the standalone game starts the native sandbox and exits cleanly. The engine's Entry map hosts the procedural test court until a dedicated court asset is ready.
+3. Open the archived `Crossover.app` normally from Finder. Confirm the sandbox draws and accepts input. Record the graphical launch result separately from the headless smoke test.
+4. Record the successful engine patch, Xcode build, SDK, tested commit, logs, app launch result, and disk footprint in the PR. If a step fails or a tool is missing, preserve the failure and keep M0 open.
+
+### Run the Mac verification lane
+
+Use Python 3.9 or newer. Set the path to the installed Unreal version, using the directory that contains `Engine/`.
+
+```sh
+python3 scripts/ue_mac.py --ue-root "/Users/Shared/Epic Games/UE_5.8"
+```
+
+The command also accepts the path through `UE_ROOT`. Run one instance at a time and close Unreal Editor before the build. Build, test and packaging steps each time out after 30 minutes by default. Use `--step-timeout` to increase that limit for a cold shader cache. The headless standalone launch is capped at 120 seconds.
+
+Each run writes to a fresh `Saved/MacVerification/run-*` directory. Keep the engine, Xcode and SDK metadata, command logs, editor test report and standalone game log with the run record. The archive lives under that run's `archive/` directory. Keep raw logs private and attach redacted excerpts to public PRs. [Unreal automation report format](https://dev.epicgames.com/documentation/unreal-engine/review-test-results-in-unreal-engine) · [BuildCookRun guide](https://dev.epicgames.com/documentation/unreal-engine/build-operations-cooking-packaging-deploying-and-running-projects-in-unreal-engine)
+
+Without Unreal, run `python3 scripts/ue_mac_test.py` to exercise the verifier's missing-tool, timeout, and report checks. To inspect an existing result, pass `--check-report /path/to/index.json`. That report-only command does not build or launch the game.
 
 Ignore generated engine files and place `.uasset` and `.umap` files in Git LFS. Review LFS storage and bandwidth before importing larger sets. Assets that exceed the approved budget or lack redistribution rights stay outside the public repository.

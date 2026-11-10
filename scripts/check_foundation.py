@@ -5,7 +5,15 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCS = ("README.md", "AGENTS.md", "docs/SLICE.md", "docs/HARNESS.md", "docs/TOOLCHAIN.md")
+DOCS = (
+    "README.md",
+    "AGENTS.md",
+    "docs/SLICE.md",
+    "docs/HARNESS.md",
+    "docs/TOOLCHAIN.md",
+    "docs/ARCHITECTURE.md",
+    "docs/STATUS.md",
+)
 MARKDOWN_LINK = re.compile(r"\]\(([^)]+)\)")
 
 

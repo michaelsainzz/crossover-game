@@ -22,7 +22,7 @@ MarketMind supplies the pattern for scoped branches, up-front acceptance criteri
 
 | Check | Run when | Pass evidence |
 | --- | --- | --- |
-| Foundation | Every PR | Hosted repository check runs on the current head. |
+| Foundation | Every PR | Hosted checks on the current head validate repo docs, portable C++ match rules, and the Mac verifier. |
 | Rules | Gameplay and rule edits | C++ tests cover inside/outside arc, possession and clear requirements, score once per basket, timed expiry and overtime, and clean resets. Inject clock and random seeds where needed. |
 | Integration | Changes to play, controls, HUD, maps, assets or build config | On the Mac, compile and run Unreal functional tests for match start, five bots, passing, shot/score/HUD, possession transitions and rematch. Resolve asset references and test binary files are hydrated. |
 | Package and performance | M0 and M4 for package, M2 onward for performance | Mac build launches outside the editor. M4 includes a full real-input match and rematch. Record the M2 performance baseline and compare M3/M4 against the slice budget. |
