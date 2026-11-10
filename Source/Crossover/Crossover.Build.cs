@@ -6,5 +6,6 @@ public class Crossover : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new[] { "Core", "CoreUObject", "Engine", "EngineSettings", "InputCore", "EnhancedInput" });
+        PrivateDependencyModuleNames.Add("SlateCore");
     }
 }

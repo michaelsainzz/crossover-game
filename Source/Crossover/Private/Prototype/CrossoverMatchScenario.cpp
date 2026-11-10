@@ -118,6 +118,33 @@ bool Crossover::MatchScenario::Run(ACrossoverMatchMode& Mode)
         return Require(Mode.GetMatchState().Ball != BallPhase::ShotInFlight, TEXT("shot did not resolve"));
     };
 
+    const TCHAR* StartingDifficulty = Mode.GetDifficultyName();
+    Mode.bAtTitle = true;
+    Mode.SetMenuMovement(true);
+    Mode.PassOrSwitch(*Mode.Roster[0]);
+    if (!Require(FCString::Strcmp(StartingDifficulty, Mode.GetDifficultyName()) != 0, TEXT("title did not change difficulty")))
+    {
+        return false;
+    }
+    Mode.ReleaseShot(*Mode.Roster[0]);
+    if (!Require(!Mode.bAtTitle, TEXT("shoot release did not start the match")))
+    {
+        return false;
+    }
+    Mode.Rematch(*Mode.Roster[0]);
+    const int32 BeforePause = Mode.GetMatchState().RegulationRemainingMilliseconds;
+    Mode.Tick(2.0f);
+    if (!Require(Mode.IsMatchPaused() && Mode.GetMatchState().RegulationRemainingMilliseconds == BeforePause,
+            TEXT("pause did not preserve the game clock")))
+    {
+        return false;
+    }
+    Mode.Rematch(*Mode.Roster[0]);
+    if (!Require(!Mode.IsMatchPaused(), TEXT("pause input did not resume")))
+    {
+        return false;
+    }
+
     Advance(45);
     if (!Require(LivePossession(Team::Home) && Mode.CarrierIndex == 0 && Mode.HumanIndex == 0,
             TEXT("opening check-in did not give home possession")))
@@ -125,6 +152,43 @@ bool Crossover::MatchScenario::Run(ACrossoverMatchMode& Mode)
         return false;
     }
 
+    Mode.BoostMeter = 100;
+    Mode.ActivateBoost(*Mode.Roster[0]);
+    if (!Require(Mode.IsBoostActive() && Mode.BoostMeter == 0, TEXT("full boost did not activate")))
+    {
+        return false;
+    }
+    Advance(430);
+    if (!Require(!Mode.IsBoostActive() && LivePossession(Team::Home), TEXT("boost did not expire during live play")))
+    {
+        return false;
+    }
+    Mode.ResetMatch();
+    Advance(45);
+
+    // A 0.55 release is inside the normal window and below the contested window.
+    constexpr int32 EdgeReleaseFrames = 33;
+    SpreadPlayers();
+    if (!Shoot(EdgeReleaseFrames) || !Require(Mode.GetMatchState().HomeScore == 2,
+            TEXT("uncontested edge release should score two")))
+    {
+        return false;
+    }
+
+    Mode.ResetMatch();
+    Advance(45);
+    SpreadPlayers();
+    Place(3, -530.0, 0.0); // Within contest range and between the shooter and rim.
+    if (!Shoot(EdgeReleaseFrames) || !Require(Mode.GetMatchState().HomeScore == 0
+            && Mode.bLooseBall && LivePossession(Team::Home),
+        TEXT("rim-side defensive pressure should make the same edge release miss")))
+    {
+        return false;
+    }
+    UE_LOG(LogTemp, Display, TEXT("CrossoverMatchSmoke: contested and uncontested edge releases passed"));
+
+    Mode.ResetMatch();
+    Advance(45);
     SpreadPlayers();
     Mode.PassOrSwitch(*Mode.Roster[0]);
     Advance(22);
@@ -190,6 +254,13 @@ bool Crossover::MatchScenario::Run(ACrossoverMatchMode& Mode)
     FVector ReboundPosition = Mode.LoosePosition;
     ReboundPosition.Z = ReboundPlayer.GetActorLocation().Z;
     ReboundPlayer.SetActorLocation(ReboundPosition, false, nullptr, ETeleportType::TeleportPhysics);
+    Mode.PassOrSwitch(*Mode.Roster[Stealer]);
+    if (!Require(Mode.HumanIndex == Rebounder && Mode.bLooseBall && LivePossession(Team::Home),
+            TEXT("loose-ball switch should select the closest teammate without claiming possession"))
+        || !VerifyRoster())
+    {
+        return false;
+    }
     Advance(10);
     if (!Require(LivePossession(Team::Home) && !Mode.bLooseBall && Mode.CarrierIndex == Rebounder,
         TEXT("nearby teammate failed to recover the rebound")))
